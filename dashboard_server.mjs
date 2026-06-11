@@ -240,10 +240,10 @@ const UI = `<!doctype html>
     .status-badge.ok, .tag.ok { color: #dcfff0; border-color: rgba(61,220,151,0.28); background: rgba(61,220,151,0.08); }
     .status-badge.warn, .tag.warn { color: #ffe8c9; border-color: rgba(242,177,92,0.34); background: rgba(242,177,92,0.10); }
     .status-badge.danger, .tag.danger { color: #ffd4da; border-color: rgba(255,107,125,0.35); background: rgba(255,107,125,0.10); }
-    button { border: 0; border-radius: 12px; cursor: pointer; font: inherit; transition: transform .18s ease, filter .18s ease, border-color .18s ease, background .18s ease; }
-    .btn-primary { background: linear-gradient(135deg, #7486ff, #8edbff); color: #07101f; font-weight: 700; padding: 12px 16px; box-shadow: 0 12px 28px rgba(115,135,255,0.26); }
+    button { border: 0; border-radius: 12px; cursor: pointer; font: inherit; min-height: 44px; transition: transform .18s ease, filter .18s ease, border-color .18s ease, background .18s ease; }
+    .btn-primary { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #7486ff, #8edbff); color: #07101f; font-weight: 700; padding: 12px 16px; box-shadow: 0 12px 28px rgba(115,135,255,0.26); }
     .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.03); }
-    .btn-secondary { background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); padding: 11px 14px; }
+    .btn-secondary { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line); padding: 11px 14px; }
     .btn-secondary:hover { transform: translateY(-1px); border-color: var(--line-strong); }
     .run-brief { padding: 22px; display: flex; flex-direction: column; gap: 16px; min-height: 248px; }
     .section-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
@@ -334,9 +334,79 @@ const UI = `<!doctype html>
     .persona-filters { margin-bottom: 12px; }
     .fchip { display: inline-block; margin-right: 6px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.12); color: #dbe4f3; background: rgba(255,255,255,0.04); border-radius: 999px; font-size: 11px; padding: 6px 10px; cursor: pointer; }
     .fchip.active { border-color: rgba(115,135,255,0.4); background: rgba(115,135,255,0.14); color: #e7ebff; }
-    @media (max-width: 1200px) { .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .metric-card { grid-column: span 2; } .insight-grid, .evidence-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 980px) { .wrap { padding: 18px; } .hero-grid, .activity-grid { grid-template-columns: 1fr; } .workspace-head { align-items: flex-start; } }
-    @media (max-width: 720px) { .topbar { flex-direction: column; align-items: flex-start; } .topbar-meta { justify-content: flex-start; } .metrics-grid { grid-template-columns: 1fr; } .metric-card { grid-column: span 1; } .brief-grid { grid-template-columns: 1fr; } .hero-footer { flex-direction: column; align-items: flex-start; } .workspace { padding: 14px; } .wrap { padding: 14px; } }
+    @media (max-width: 1200px) {
+      .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metric-card { grid-column: span 2; }
+      .insight-grid, .evidence-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 980px) {
+      .wrap { padding: 18px; }
+      .hero-grid, .activity-grid { grid-template-columns: 1fr; }
+      .workspace-head { align-items: flex-start; }
+      .run-brief { min-height: auto; }
+      .hero-title { max-width: 14ch; }
+      .topbar-meta { justify-content: flex-start; }
+      .inline-detail { min-height: 0; }
+    }
+    @media (max-width: 720px) {
+      .wrap { padding: 14px; }
+      .topbar { flex-direction: column; align-items: stretch; }
+      .brand { align-items: flex-start; }
+      .topbar-meta {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+      }
+      .micro-pill { white-space: nowrap; flex: 0 0 auto; }
+      .hero-main, .run-brief, .headline-panel, .list-panel, .workspace { padding: 16px; }
+      .hero-title { font-size: clamp(1.9rem, 8vw, 2.6rem); max-width: none; }
+      .hero-lead { font-size: 14px; line-height: 1.6; }
+      .hero-footer { flex-direction: column; align-items: stretch; }
+      .hero-actions { width: 100%; }
+      .hero-actions .btn-primary,
+      .hero-actions .btn-secondary { flex: 1 1 100%; width: 100%; justify-content: center; }
+      .status-cluster, .hero-tags { width: 100%; }
+      .brief-grid, .metrics-grid { grid-template-columns: 1fr; }
+      .metric-card { grid-column: span 1; }
+      .metric-value { font-size: 30px; }
+      .workspace-filters {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+      }
+      .filter-btn { flex: 0 0 auto; }
+      .table-wrap {
+        margin-inline: -4px;
+        border-radius: 14px;
+      }
+      table { font-size: 12px; }
+      th, td { padding: 10px 9px; }
+      .kv { grid-template-columns: 92px 1fr; }
+      .side-panel { width: 100vw; }
+      .drawer-head, .drawer-body { padding-left: 14px; padding-right: 14px; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 12px; }
+      .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+      .brand-mark::after { inset: 8px; border-radius: 8px; }
+      .brand-copy strong { font-size: 14px; }
+      .panel { border-radius: 16px; }
+      .hero-main, .run-brief, .headline-panel, .list-panel, .workspace { padding: 14px; }
+      .eyebrow, .section-label { letter-spacing: 0.16em; }
+      .status-badge, .tag, .micro-pill { font-size: 11px; padding: 7px 10px; }
+      .brief-stat .value { font-size: 17px; }
+      .headline-title { font-size: 24px; max-width: none; }
+      .headline-copy, .callout-text, .brief-copy { font-size: 13px; }
+      .workspace-head h3 { font-size: 20px; }
+      .workspace-meta { font-size: 12px; }
+      .inline-detail { padding: 14px; }
+      .pill { font-size: 10px; }
+      .kv { grid-template-columns: 1fr; gap: 4px 0; }
+      .kv .k { margin-top: 8px; }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
