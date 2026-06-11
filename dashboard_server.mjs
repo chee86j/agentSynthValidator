@@ -292,8 +292,8 @@ const UI = `<!doctype html>
     .workspace { padding: 18px; }
     .workspace-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
     .workspace-head h3 { margin: 0; font-size: 24px; letter-spacing: -0.04em; }
-    .workspace-meta { color: var(--muted); font-size: 13px; }
-    .workspace-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .workspace-meta { color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 72ch; }
+    .workspace-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .filter-btn { background: rgba(255,255,255,0.03); color: #d8deea; border: 1px solid var(--line); padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .filter-btn:hover { border-color: var(--line-strong); }
     .filter-btn.active { background: rgba(115,135,255,0.14); border-color: rgba(115,135,255,0.42); color: #e7ebff; }
@@ -307,10 +307,20 @@ const UI = `<!doctype html>
     .th-btn:hover { background: rgba(255,255,255,0.04); }
     tr.row-click { cursor: pointer; }
     tr.row-click:hover td { background: rgba(255,255,255,0.03); }
-    tr.selected td { background: rgba(115,135,255,0.11) !important; }
+    tr.selected td {
+      background: linear-gradient(180deg, rgba(115,135,255,0.16), rgba(115,135,255,0.10)) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 3px 0 0 rgba(142,219,255,0.95);
+    }
     .mono { font-family: var(--mono); }
-    .inline-detail { border: 1px solid var(--line); border-radius: 16px; background: rgba(8,11,18,0.85); padding: 14px; min-height: 240px; }
-    .inline-detail h4 { margin: 0 0 8px; font-size: 17px; letter-spacing: -0.03em; }
+    .inline-detail {
+      border: 1px solid rgba(115,135,255,0.16);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(9,13,22,0.96), rgba(8,11,18,0.90));
+      padding: 16px;
+      min-height: 240px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .inline-detail h4 { margin: 0 0 10px; font-size: 17px; letter-spacing: -0.03em; }
     .muted { color: var(--muted); }
     .pill { display: inline-flex; align-items: center; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #dbe4f3; font-size: 11px; padding: 5px 8px; margin-right: 6px; margin-bottom: 6px; }
     .kv { display: grid; grid-template-columns: 110px 1fr; gap: 7px 10px; font-size: 12px; margin-top: 12px; }
@@ -383,7 +393,7 @@ const UI = `<!doctype html>
           <div class="brief-stat"><div class="label">Status</div><div class="value" id="briefStatus">idle</div><div class="sub">No simulation in progress.</div></div>
           <div class="brief-stat"><div class="label">Window</div><div class="value mono" id="briefWindow">-</div><div class="sub">Run duration appears here.</div></div>
           <div class="brief-stat"><div class="label">Target</div><div class="value mono" id="briefTarget">-</div><div class="sub">Remote environment under test.</div></div>
-          <div class="brief-stat"><div class="label">Latest guidance</div><div class="value" id="briefGuidance">Awaiting run</div><div class="sub">Top-level recommendation will update here.</div></div>
+          <div class="brief-stat"><div class="label">Latest guidance</div><div class="value" id="briefGuidance">Awaiting run</div><div class="sub">Primary next step for the team after the latest run.</div></div>
         </div>
       </aside>
     </section>
@@ -396,12 +406,12 @@ const UI = `<!doctype html>
           <div><div class="section-label">Executive summary</div><h3 class="headline-title" id="headlineTitle">Run synthetic traffic to generate a risk summary.</h3></div>
           <span class="status-badge info" id="headlineBadge">Waiting</span>
         </div>
-        <div class="headline-copy" id="headlineCopy">This area highlights the most important outcome from the latest run: stability, risk concentration, or latency pressure.</div>
-        <div class="headline-callout"><div class="callout-kicker">Why this matters</div><div class="callout-text" id="headlineCallout">Product teams need a fast way to distinguish stable runs from those that need immediate triage.</div></div>
+        <div class="headline-copy" id="headlineCopy">This area surfaces the most important outcome from the latest run: stability, concentrated failure pressure, or latency risk.</div>
+        <div class="headline-callout"><div class="callout-kicker">Why this matters</div><div class="callout-text" id="headlineCallout">Product teams need an immediate read on what to fix first before they widen scenario coverage or invite real beta traffic.</div></div>
       </article>
 
       <article class="panel list-panel">
-        <div class="panel-head"><div><div class="section-label">Findings</div><h4>Actionable recommendations</h4></div></div>
+        <div class="panel-head"><div><div class="section-label">Findings</div><h4>Recommended next actions</h4></div></div>
         <div id="findings" class="list-scroller muted">Run a simulation to generate findings.</div>
       </article>
 
@@ -427,7 +437,7 @@ const UI = `<!doctype html>
         <div>
           <div class="section-label">Investigation workspace</div>
           <h3 id="detailTitle">Select a metric above to open the evidence table.</h3>
-          <div class="workspace-meta" id="detailMeta">Use the metric cards or quick filters to pivot between actions, errors, personas, and performance.</div>
+          <div class="workspace-meta" id="detailMeta">Pivot between actions, failures, personas, and performance, then select a row to inspect the event payload, persona profile, and endpoint context.</div>
           <div class="workspace-filters" id="workspaceFilters"></div>
         </div>
       </div>
