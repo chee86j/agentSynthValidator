@@ -270,18 +270,28 @@ const UI = `<!doctype html>
     .metric-sub { color: var(--muted); font-size: 13px; line-height: 1.5; }
     .metric-bar { height: 7px; margin-top: 14px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
     .metric-bar > span { display: block; height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, rgba(115,135,255,0.95), rgba(142,219,255,0.95)); transition: width .45s ease; }
+    .metric-sparkline { margin-top: 12px; height: 34px; width: 100%; }
+    .metric-sparkline path.spark-fill { fill: rgba(115,135,255,0.10); }
+    .metric-sparkline path.spark-line { fill: none; stroke: rgba(142,219,255,0.95); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+    .metric-sparkline circle { fill: #8edbff; }
     .insight-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(300px, 0.86fr); gap: 16px; margin-bottom: 18px; }
     .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
     .panel-head h3, .panel-head h4 { margin: 0; letter-spacing: -0.03em; }
     .headline-panel { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
     .headline-title { font-size: 30px; line-height: 1.02; letter-spacing: -0.05em; margin: 0; max-width: 14ch; }
     .headline-copy { color: #b8c3d7; font-size: 15px; line-height: 1.65; max-width: 56ch; }
-    .headline-callout { border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 16px; padding: 14px; }
+    .headline-callout { border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 16px; padding: 14px; transition: border-color .24s ease, background .24s ease, transform .24s ease; }
     .callout-kicker { color: var(--muted-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; margin-bottom: 8px; }
     .callout-text { font-size: 14px; color: #dbe4f3; line-height: 1.6; }
     .list-panel { padding: 20px; }
     .list-scroller { max-height: 440px; overflow: auto; padding-right: 4px; }
     .finding-item, .feed-item, .error-item, .persona-item { border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 14px; padding: 12px 13px; margin-bottom: 10px; }
+    .finding-item, .feed-item, .error-item, .persona-item, .metric-card, .headline-callout { animation: riseIn .28s ease both; }
+    .finding-item:hover, .feed-item:hover, .error-item:hover, .persona-item:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.045); }
+    .latency-track { margin-top: 8px; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .latency-track > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, rgba(115,135,255,0.85), rgba(142,219,255,0.95)); }
+    .latency-track.warn > span { background: linear-gradient(90deg, rgba(242,177,92,0.88), rgba(255,200,132,0.98)); }
+    .latency-track.danger > span { background: linear-gradient(90deg, rgba(255,107,125,0.9), rgba(255,152,164,0.98)); }
     .finding-item strong, .feed-item strong, .error-item strong, .persona-item strong { display: block; margin-bottom: 4px; color: #eef3fb; font-size: 14px; }
     .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 8px; font-size: 10px; border: 1px solid transparent; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; margin-bottom: 8px; }
     .chip.info { color: #d4ecff; border-color: rgba(142,219,255,0.26); background: rgba(142,219,255,0.09); }
@@ -334,6 +344,15 @@ const UI = `<!doctype html>
     .persona-filters { margin-bottom: 12px; }
     .fchip { display: inline-block; margin-right: 6px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.12); color: #dbe4f3; background: rgba(255,255,255,0.04); border-radius: 999px; font-size: 11px; padding: 6px 10px; cursor: pointer; }
     .fchip.active { border-color: rgba(115,135,255,0.4); background: rgba(115,135,255,0.14); color: #e7ebff; }
+    .status-badge.pulse { animation: statusPulse 1.8s ease-in-out infinite; }
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes statusPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(142,219,255,0.0); }
+      50% { box-shadow: 0 0 0 8px rgba(142,219,255,0.08); }
+    }
     @media (max-width: 1200px) {
       .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .metric-card { grid-column: span 2; }
@@ -555,7 +574,7 @@ function animateNumber(el, target) {
   const prev = Number(el.dataset.value || 0);
   const suffix = el.dataset.suffix || '';
   const start = performance.now();
-  const dur = 420;
+  const dur = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420;
 
   function tick(now) {
     const t = Math.min(1, (now - start) / dur);
@@ -567,6 +586,46 @@ function animateNumber(el, target) {
 
   el.dataset.value = String(next);
   requestAnimationFrame(tick);
+}
+
+function buildSparkline(values) {
+  const nums = (values || []).map(function (v) { return Number(v) || 0; }).filter(function (v) { return isFinite(v); });
+  if (!nums.length) return '';
+  const width = 120;
+  const height = 34;
+  const pad = 3;
+  const min = Math.min.apply(null, nums);
+  const max = Math.max.apply(null, nums);
+  const span = Math.max(1, max - min);
+  const step = nums.length === 1 ? 0 : (width - pad * 2) / (nums.length - 1);
+  const pts = nums.map(function (n, i) {
+    const x = pad + step * i;
+    const y = height - pad - ((n - min) / span) * (height - pad * 2);
+    return [x, y];
+  });
+  const line = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1].toFixed(2); }).join(' ');
+  const fill = line + ' L ' + (width - pad) + ' ' + (height - pad) + ' L ' + pad + ' ' + (height - pad) + ' Z';
+  const last = pts[pts.length - 1];
+  return ''
+    + '<svg class="metric-sparkline" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<path class="spark-fill" d="' + fill + '"></path>'
+    + '<path class="spark-line" d="' + line + '"></path>'
+    + '<circle cx="' + last[0].toFixed(2) + '" cy="' + last[1].toFixed(2) + '" r="2.7"></circle>'
+    + '</svg>';
+}
+
+function latencyTone(ms) {
+  if ((Number(ms) || 0) >= 140) return 'danger';
+  if ((Number(ms) || 0) >= 90) return 'warn';
+  return 'info';
+}
+
+function latencyBar(ms, ceiling) {
+  const value = Number(ms) || 0;
+  const max = Math.max(40, Number(ceiling) || 160);
+  const width = Math.max(8, Math.min(100, Math.round((value / max) * 100)));
+  const tone = latencyTone(value);
+  return '<div class="latency-track ' + tone + '"><span style="width:' + width + '%"></span></div>';
 }
 
 function personaColor(label) {
@@ -731,7 +790,7 @@ function renderHeadline(findings, errorRate, p95, status) {
   const copy = document.getElementById('headlineCopy');
   const callout = document.getElementById('headlineCallout');
 
-  badge.className = 'status-badge ' + health.tone;
+  badge.className = 'status-badge ' + health.tone + (status === 'running' ? ' pulse' : '');
   badge.textContent = health.label;
 
   if (!top) {
@@ -775,6 +834,7 @@ function renderPersonaPressure(personas, perfRows) {
       + '<span class="chip ' + sev + '">' + esc(p.persona.label || 'persona') + '</span>'
       + '<strong>' + esc(p.username) + '</strong>'
       + '<div class="muted">actions ' + esc(String(p.actionCount)) + ' · errors ' + esc(String(p.errorCount)) + ' · p95 ' + esc(String(p.p95LatencyMs)) + 'ms</div>'
+      + latencyBar(p.p95LatencyMs, 180)
       + '<div style="margin-top:8px;height:6px;border-radius:999px;background:rgba(255,255,255,0.06);overflow:hidden"><span style="display:block;height:100%;width:' + Math.min(100, p.errorCount * 25 + Math.round(p.p95LatencyMs / 4)) + '%;background:' + esc(personaColor(p.persona.label || '')) + '"></span></div>'
       + '</div>';
   }).join('');
@@ -797,6 +857,7 @@ function renderOpsPanels(actions, errors, personas, perfRows, summary) {
         + '<span class="chip ' + sev + '">' + label + '</span>'
         + '<strong>' + esc(ev.username || 'unknown') + ' · ' + esc(ev.endpoint || '-') + '</strong>'
         + '<div class="muted">persona: ' + esc((ev.persona && ev.persona.label) || 'n/a') + ' · status ' + esc(String(ev.status || '-')) + ' · ' + esc(String(ev.latencyMs || 0)) + 'ms</div>'
+        + latencyBar(ev.latencyMs, 180)
         + '<div class="muted mono" style="margin-top:6px">' + esc(fmtShort(ev.timestamp || '')) + '</div>'
         + '</div>';
     }).join('');
@@ -823,6 +884,7 @@ function renderOpsPanels(actions, errors, personas, perfRows, summary) {
         + '<span class="chip danger">error</span>'
         + '<strong>' + esc(e.username) + '</strong>'
         + '<div class="muted">' + esc(e.endpoint || '-') + ' · status ' + esc(String(e.status || '-')) + ' · ' + esc(String(e.latencyMs || 0)) + 'ms</div>'
+        + latencyBar(e.latencyMs, 180)
         + '<div class="muted mono" style="margin-top:6px">' + esc(fmtShort(e.timestamp || '')) + '</div>'
         + '</div>';
     }).join('');
@@ -996,7 +1058,7 @@ function updateHero(summary) {
   const health = healthState(summary.errorRate, summary.p95Overall, summary.status);
   document.getElementById('heroHealthText').textContent = health.headline;
   const badge = document.getElementById('heroHealthBadge');
-  badge.className = 'status-badge ' + health.tone;
+  badge.className = 'status-badge ' + health.tone + (status === 'running' ? ' pulse' : '');
   badge.textContent = health.label;
   document.getElementById('runSummaryLine').textContent = summary.summaryLine;
   document.getElementById('briefStatus').textContent = summary.status;
@@ -1026,6 +1088,7 @@ function renderMetricCards(cardsData) {
       + '<div class="metric-top"><div class="metric-label">' + esc(c.label) + '</div><div class="metric-meta">' + esc(c.meta || '') + '</div></div>'
       + '<div class="metric-value mono" data-value="0" data-suffix="' + esc(c.suffix || '') + '">0' + esc(c.suffix || '') + '</div>'
       + '<div class="metric-sub">' + esc(c.hint) + '</div>'
+      + (c.series && c.series.length ? buildSparkline(c.series) : '')
       + '<div class="metric-bar"><span style="width:' + pct + '%"></span></div>';
     if (c.category) {
       el.addEventListener('click', function () { loadCategory(c.category, c.categoryLabel || c.label); });
@@ -1079,15 +1142,21 @@ async function loadSummary() {
   const findings = buildFindings(actions, errors, personas, perfRows);
   document.getElementById('briefGuidance').textContent = findings[0] ? findings[0].title : 'Awaiting run';
 
+  const actionByEndpoint = Object.values(actions.reduce(function (acc, ev) { acc[ev.endpoint || 'unknown'] = (acc[ev.endpoint || 'unknown'] || 0) + 1; return acc; }, {})).sort(function (a, b) { return a - b; });
+  const errorByEndpoint = Object.values(errors.reduce(function (acc, ev) { acc[ev.endpoint || 'unknown'] = (acc[ev.endpoint || 'unknown'] || 0) + 1; return acc; }, {})).sort(function (a, b) { return a - b; });
+  const personaActionSeries = personas.map(function (p) { return p.actionCount || 0; }).sort(function (a, b) { return a - b; });
+  const personaErrorSeries = personas.map(function (p) { return p.errorCount || 0; }).sort(function (a, b) { return a - b; });
+  const perfAvgSeries = perfRows.map(function (p) { return p.avgLatencyMs || 0; }).sort(function (a, b) { return a - b; });
+  const perfP95Series = perfRows.map(function (p) { return p.p95LatencyMs || 0; }).sort(function (a, b) { return a - b; });
   const cardsData = [
-    { label: 'Successful checks', value: actions.length, hint: 'Observed successful endpoint checks across the run.', category: 'actions', categoryLabel: 'Actions', meta: 'actions' },
-    { label: 'Failed checks', value: errors.length, hint: 'Failing checks requiring route or session triage.', category: 'errors', categoryLabel: 'Errors', meta: 'errors' },
-    { label: 'Completed agents', value: completedAgents, hint: 'Synthetic users that produced at least one event.', category: 'personas', categoryLabel: 'Personas', meta: 'coverage' },
-    { label: 'Impacted personas', value: affectedPersonas, hint: 'Distinct personas that encountered one or more failures.', category: 'personas', categoryLabel: 'Personas', meta: 'risk spread' },
-    { label: 'Average latency', value: avgActionMs, hint: 'Mean response time for successful checks.', category: 'performance', categoryLabel: 'Performance', meta: 'mean', suffix: 'ms' },
-    { label: 'P95 latency', value: p95Overall, hint: 'Tail latency averaged across participating users.', category: 'performance', categoryLabel: 'Performance', meta: 'tail', suffix: 'ms' },
-    { label: 'Failure rate', value: Math.round(errorRate * 100), hint: 'Share of observed checks that failed in the latest run.', category: 'errors', categoryLabel: 'Errors', meta: 'ratio', suffix: '%' },
-    { label: 'Endpoint coverage', value: uniqueEndpoints, hint: 'Unique endpoints touched by synthetic traffic this run.', category: 'actions', categoryLabel: 'Actions', meta: 'breadth' }
+    { label: 'Successful checks', value: actions.length, hint: 'Observed successful endpoint checks across the run.', category: 'actions', categoryLabel: 'Actions', meta: 'actions', series: actionByEndpoint },
+    { label: 'Failed checks', value: errors.length, hint: 'Failing checks requiring route or session triage.', category: 'errors', categoryLabel: 'Errors', meta: 'errors', series: errorByEndpoint.length ? errorByEndpoint : [0] },
+    { label: 'Completed agents', value: completedAgents, hint: 'Synthetic users that produced at least one event.', category: 'personas', categoryLabel: 'Personas', meta: 'coverage', series: personaActionSeries },
+    { label: 'Impacted personas', value: affectedPersonas, hint: 'Distinct personas that encountered one or more failures.', category: 'personas', categoryLabel: 'Personas', meta: 'risk spread', series: personaErrorSeries },
+    { label: 'Average latency', value: avgActionMs, hint: 'Mean response time for successful checks.', category: 'performance', categoryLabel: 'Performance', meta: 'mean', suffix: 'ms', series: perfAvgSeries },
+    { label: 'P95 latency', value: p95Overall, hint: 'Tail latency averaged across participating users.', category: 'performance', categoryLabel: 'Performance', meta: 'tail', suffix: 'ms', series: perfP95Series },
+    { label: 'Failure rate', value: Math.round(errorRate * 100), hint: 'Share of observed checks that failed in the latest run.', category: 'errors', categoryLabel: 'Errors', meta: 'ratio', suffix: '%', series: [actions.length, errors.length, affectedPersonas, uniqueEndpoints] },
+    { label: 'Endpoint coverage', value: uniqueEndpoints, hint: 'Unique endpoints touched by synthetic traffic this run.', category: 'actions', categoryLabel: 'Actions', meta: 'breadth', series: actionByEndpoint.concat(errorByEndpoint).sort(function (a, b) { return a - b; }) }
   ];
 
   renderMetricCards(cardsData);
