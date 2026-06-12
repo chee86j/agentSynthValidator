@@ -18,7 +18,8 @@ const state = {
   finishedAt: null,
   users: [],
   actions: [],
-  errors: []
+  errors: [],
+  runHistory: []
 };
 
 function json(res, code, payload) {
@@ -119,21 +120,70 @@ async function runSyntheticTest() {
 
   state.status = 'completed';
   state.finishedAt = new Date().toISOString();
+  state.runHistory.push(buildRunSnapshot());
+  state.runHistory = state.runHistory.slice(-12);
+}
+
+function average(values) {
+  const nums = (values || []).map(Number).filter(Number.isFinite);
+  return nums.length ? Math.round(nums.reduce(function (sum, value) { return sum + value; }, 0) / nums.length) : 0;
+}
+
+function percentile(values, ratio = 0.95) {
+  const nums = (values || []).map(Number).filter(Number.isFinite).sort(function (a, b) { return a - b; });
+  if (!nums.length) return null;
+  const idx = Math.min(nums.length - 1, Math.max(0, Math.ceil(nums.length * ratio) - 1));
+  return nums[idx];
+}
+
+function buildRunSnapshot() {
+  const successLatencies = state.actions.map(function (a) { return a.latencyMs; });
+  const failureLatencies = state.errors.map(function (e) { return e.latencyMs; });
+  const totalEvents = state.actions.length + state.errors.length;
+  const errorRate = totalEvents ? state.errors.length / totalEvents : 0;
+  const impactedPersonas = state.users.filter(function (u) { return (u.errors || []).length > 0; }).length;
+  const completedAgents = state.users.filter(function (u) { return ((u.actions || []).length + (u.errors || []).length) > 0; }).length;
+  const endpointFailureCounts = state.errors.reduce(function (acc, error) {
+    const key = error.endpoint || 'unknown';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const topEndpoint = Object.entries(endpointFailureCounts).sort(function (a, b) { return b[1] - a[1]; })[0] || null;
+
+  return {
+    startedAt: state.startedAt,
+    finishedAt: state.finishedAt,
+    status: state.status,
+    totalEvents: totalEvents,
+    successCount: state.actions.length,
+    errorCount: state.errors.length,
+    errorRate: errorRate,
+    avgSuccessLatencyMs: average(successLatencies),
+    p95SuccessLatencyMs: percentile(successLatencies, 0.95),
+    avgFailureLatencyMs: average(failureLatencies),
+    uniqueEndpoints: new Set(state.actions.concat(state.errors).map(function (event) { return event.endpoint; }).filter(Boolean)).size,
+    impactedPersonas: impactedPersonas,
+    completedAgents: completedAgents,
+    topEndpoint: topEndpoint ? { endpoint: topEndpoint[0], failures: topEndpoint[1] } : null
+  };
 }
 
 function summary() {
-  const latencies = state.actions.map(a => a.latencyMs);
-  const avgLatency = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
+  const latest = buildRunSnapshot();
+  const previous = state.runHistory.length > 1 ? state.runHistory[state.runHistory.length - 2] : null;
   return {
     status: state.status,
     startedAt: state.startedAt,
     finishedAt: state.finishedAt,
     target: TARGET,
+    latestRun: latest,
+    previousRun: previous,
+    runHistory: state.runHistory,
     categories: [
       { id: 'actions', label: 'Actions', count: state.actions.length, hint: 'Successful endpoint checks by test users' },
       { id: 'errors', label: 'Errors', count: state.errors.length, hint: 'Failures grouped with user + persona context' },
       { id: 'personas', label: 'Personas', count: state.users.length, hint: 'All test users with personality variables' },
-      { id: 'performance', label: 'Performance', count: avgLatency, hint: 'Average latency (ms)' }
+      { id: 'performance', label: 'Performance', count: latest.avgSuccessLatencyMs, hint: 'Average successful latency (ms)' }
     ]
   };
 }
@@ -151,10 +201,18 @@ function categoryData(name) {
   }
   if (name === 'performance') {
     return state.users.map(u => {
-      const lats = u.actions.map(a => a.latencyMs).sort((a, b) => a - b);
-      const avg = lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : 0;
-      const p95 = lats.length ? lats[Math.min(lats.length - 1, Math.floor(lats.length * 0.95))] : 0;
-      return { username: u.username, persona: u.persona, avgLatencyMs: avg, p95LatencyMs: p95, errorCount: u.errors.length };
+      const successLats = u.actions.map(function (a) { return a.latencyMs; });
+      const failureLats = u.errors.map(function (e) { return e.latencyMs; });
+      return {
+        username: u.username,
+        persona: u.persona,
+        successCount: u.actions.length,
+        failureCount: u.errors.length,
+        avgLatencyMs: average(successLats),
+        p95LatencyMs: percentile(successLats, 0.95),
+        failureAvgLatencyMs: average(failureLats),
+        errorCount: u.errors.length
+      };
     });
   }
   return [];
@@ -569,6 +627,21 @@ function durSec(startedAt, finishedAt, status) {
   return ((end - start) / 1000).toFixed(1) + 's';
 }
 
+function fmtMetric(value, suffix, emptyLabel) {
+  if (value == null || !Number.isFinite(Number(value))) return emptyLabel || '—';
+  return String(Math.round(Number(value))) + (suffix || '');
+}
+
+function deltaMeta(current, previous, suffix) {
+  if (current == null || previous == null || !Number.isFinite(Number(current)) || !Number.isFinite(Number(previous))) {
+    return 'baseline pending';
+  }
+  const diff = Number(current) - Number(previous);
+  if (Math.abs(diff) < 0.5) return 'flat vs prev';
+  const sign = diff > 0 ? '+' : '';
+  return sign + Math.round(diff) + (suffix || '') + ' vs prev';
+}
+
 function animateNumber(el, target) {
   const next = Number(target || 0);
   const prev = Number(el.dataset.value || 0);
@@ -907,7 +980,10 @@ function normalizeDetailRow(row, idx) {
     endpoint: row.endpoint || row.lastEndpoint || '-',
     status: row.status != null ? row.status : (row.lastStatus != null ? row.lastStatus : '-'),
     latencyMs: Number(row.latencyMs != null ? row.latencyMs : (row.avgLatencyMs != null ? row.avgLatencyMs : 0)),
-    p95LatencyMs: Number(row.p95LatencyMs != null ? row.p95LatencyMs : 0),
+    p95LatencyMs: row.p95LatencyMs == null ? null : Number(row.p95LatencyMs),
+    failureAvgLatencyMs: row.failureAvgLatencyMs == null ? null : Number(row.failureAvgLatencyMs),
+    successCount: Number(row.successCount != null ? row.successCount : row.actionCount != null ? row.actionCount : 0),
+    failureCount: Number(row.failureCount != null ? row.failureCount : row.errorCount != null ? row.errorCount : 0),
     actionCount: Number(row.actionCount != null ? row.actionCount : 0),
     errorCount: Number(row.errorCount != null ? row.errorCount : 0),
     timestamp: timestamp,
@@ -930,13 +1006,14 @@ function renderInlineDetail(row) {
     + '<div>'
     + '<span class="pill">persona: ' + esc(row.persona) + '</span>'
     + '<span class="pill">status: ' + esc(String(row.status)) + '</span>'
-    + '<span class="pill">latency: ' + esc(String(row.latencyMs)) + 'ms</span>'
-    + '<span class="pill">p95: ' + esc(String(row.p95LatencyMs)) + 'ms</span>'
+    + '<span class="pill">avg success: ' + esc(fmtMetric(row.latencyMs, 'ms')) + '</span>'
+    + '<span class="pill">success p95: ' + esc(fmtMetric(row.p95LatencyMs, 'ms', '—')) + '</span>'
     + '</div>'
     + '<div class="kv">'
     + '<div class="k">Endpoint</div><div class="v">' + esc(row.endpoint) + '</div>'
-    + '<div class="k">Action count</div><div class="v">' + esc(String(row.actionCount)) + '</div>'
-    + '<div class="k">Error count</div><div class="v">' + esc(String(row.errorCount)) + '</div>'
+    + '<div class="k">Success count</div><div class="v">' + esc(String(row.successCount || row.actionCount)) + '</div>'
+    + '<div class="k">Failure count</div><div class="v">' + esc(String(row.failureCount || row.errorCount)) + '</div>'
+    + '<div class="k">Failed avg latency</div><div class="v">' + esc(fmtMetric(row.failureAvgLatencyMs, 'ms', '—')) + '</div>'
     + '<div class="k">Last event</div><div class="v mono">' + esc(fmtShort(row.timestamp || '')) + '</div>'
     + '</div>'
     + '<h4 style="margin-top:14px">Raw payload</h4>'
@@ -1000,10 +1077,10 @@ async function renderDetailTable() {
       + '<td>' + esc(r.persona) + '</td>'
       + '<td>' + esc(String(r.status)) + '</td>'
       + '<td>' + esc(r.endpoint) + '</td>'
-      + '<td class="mono">' + esc(String(r.latencyMs)) + 'ms</td>'
-      + '<td class="mono">' + esc(String(r.p95LatencyMs)) + 'ms</td>'
-      + '<td class="mono">' + esc(String(r.actionCount)) + '</td>'
-      + '<td class="mono">' + esc(String(r.errorCount)) + '</td>'
+      + '<td class="mono">' + esc(fmtMetric(r.latencyMs, 'ms')) + '</td>'
+      + '<td class="mono">' + esc(fmtMetric(r.p95LatencyMs, 'ms', '—')) + '</td>'
+      + '<td class="mono">' + esc(String(r.successCount || r.actionCount)) + '</td>'
+      + '<td class="mono">' + esc(String(r.failureCount || r.errorCount)) + '</td>'
       + '<td class="mono">' + esc(fmtShort(r.timestamp || '')) + '</td>'
       + '</tr>';
   });
@@ -1058,7 +1135,7 @@ function updateHero(summary) {
   const health = healthState(summary.errorRate, summary.p95Overall, summary.status);
   document.getElementById('heroHealthText').textContent = health.headline;
   const badge = document.getElementById('heroHealthBadge');
-  badge.className = 'status-badge ' + health.tone + (status === 'running' ? ' pulse' : '');
+  badge.className = 'status-badge ' + health.tone + (summary.status === 'running' ? ' pulse' : '');
   badge.textContent = health.label;
   document.getElementById('runSummaryLine').textContent = summary.summaryLine;
   document.getElementById('briefStatus').textContent = summary.status;
@@ -1112,14 +1189,30 @@ async function loadSummary() {
   const errors = payload[2];
   const personas = payload[3];
   const perfRows = payload[4];
-  const totalEvents = actions.length + errors.length;
-  const errorRate = totalEvents ? errors.length / totalEvents : 0;
+  const latestRun = s.latestRun || {};
+  const previousRun = s.previousRun || null;
+  const totalEvents = latestRun.totalEvents != null ? latestRun.totalEvents : (actions.length + errors.length);
+  const errorRate = latestRun.errorRate != null ? latestRun.errorRate : (totalEvents ? errors.length / totalEvents : 0);
   const completedAgents = personas.filter(function (p) { return (p.actionCount + p.errorCount) > 0; }).length;
-  const perfCategory = s.categories.find(function (c) { return c.id === 'performance'; });
-  const avgActionMs = (perfCategory && perfCategory.count) || 0;
-  const p95Overall = perfRows.length ? Math.round(perfRows.reduce(function (acc, r) { return acc + (r.p95LatencyMs || 0); }, 0) / perfRows.length) : 0;
-  const affectedPersonas = personas.filter(function (p) { return (p.errorCount || 0) > 0; }).length;
-  const uniqueEndpoints = new Set(actions.concat(errors).map(function (e) { return e.endpoint; }).filter(Boolean)).size;
+  const affectedPersonas = latestRun.impactedPersonas != null ? latestRun.impactedPersonas : personas.filter(function (p) { return (p.errorCount || 0) > 0; }).length;
+  const uniqueEndpoints = latestRun.uniqueEndpoints != null ? latestRun.uniqueEndpoints : new Set(actions.concat(errors).map(function (e) { return e.endpoint; }).filter(Boolean)).size;
+  const avgSuccessMs = latestRun.avgSuccessLatencyMs != null ? latestRun.avgSuccessLatencyMs : average(perfRows.map(function (p) { return p.avgLatencyMs; }));
+  const p95Overall = latestRun.p95SuccessLatencyMs != null ? latestRun.p95SuccessLatencyMs : percentile(actions.map(function (a) { return a.latencyMs; }), 0.95);
+  const avgFailureMs = latestRun.avgFailureLatencyMs != null ? latestRun.avgFailureLatencyMs : average(errors.map(function (e) { return e.latencyMs; }));
+  const runHistory = (s.runHistory || []).slice(-8);
+
+  let trendCopy = 'No previous run yet — this run establishes the baseline.';
+  if (previousRun) {
+    const rateDelta = Math.round((errorRate - (previousRun.errorRate || 0)) * 100);
+    const p95Delta = Math.round((Number(p95Overall || 0)) - Number(previousRun.p95SuccessLatencyMs || 0));
+    const parts = [];
+    parts.push((rateDelta >= 0 ? '+' : '') + rateDelta + ' pts failure rate');
+    parts.push((p95Delta >= 0 ? '+' : '') + p95Delta + 'ms success p95');
+    if (latestRun.topEndpoint && previousRun.topEndpoint && latestRun.topEndpoint.endpoint !== previousRun.topEndpoint.endpoint) {
+      parts.push('hotspot shifted to ' + latestRun.topEndpoint.endpoint);
+    }
+    trendCopy = 'Vs previous run: ' + parts.join(' · ');
+  }
 
   const summary = {
     status: s.status,
@@ -1128,12 +1221,15 @@ async function loadSummary() {
     target: s.target,
     targetShort: s.target.replace(/^https?:\/\//, ''),
     errorRate: errorRate,
-    p95Overall: p95Overall,
+    p95Overall: Number(p95Overall || 0),
     completedAgents: completedAgents,
     totalAgents: personas.length,
     summaryLine: s.status === 'idle'
       ? 'Launch a synthetic run to generate findings, latency telemetry, and persona-level evidence.'
-      : 'Observed ' + totalEvents + ' checks across ' + personas.length + ' synthetic users against ' + s.target + '.'
+      : 'Observed ' + totalEvents + ' checks across ' + personas.length + ' synthetic users against ' + s.target + '. ' + trendCopy,
+    latestRun: latestRun,
+    previousRun: previousRun,
+    trendCopy: trendCopy
   };
 
   document.getElementById('status').textContent = 'Status: ' + s.status + ' · Started: ' + fmtShort(s.startedAt) + ' · Finished: ' + fmtShort(s.finishedAt);
@@ -1146,17 +1242,22 @@ async function loadSummary() {
   const errorByEndpoint = Object.values(errors.reduce(function (acc, ev) { acc[ev.endpoint || 'unknown'] = (acc[ev.endpoint || 'unknown'] || 0) + 1; return acc; }, {})).sort(function (a, b) { return a - b; });
   const personaActionSeries = personas.map(function (p) { return p.actionCount || 0; }).sort(function (a, b) { return a - b; });
   const personaErrorSeries = personas.map(function (p) { return p.errorCount || 0; }).sort(function (a, b) { return a - b; });
-  const perfAvgSeries = perfRows.map(function (p) { return p.avgLatencyMs || 0; }).sort(function (a, b) { return a - b; });
-  const perfP95Series = perfRows.map(function (p) { return p.p95LatencyMs || 0; }).sort(function (a, b) { return a - b; });
+  const successLatencySeries = runHistory.map(function (run) { return run.avgSuccessLatencyMs || 0; });
+  const failureLatencySeries = runHistory.map(function (run) { return run.avgFailureLatencyMs || 0; });
+  const p95HistorySeries = runHistory.map(function (run) { return run.p95SuccessLatencyMs || 0; });
+  const failureRateHistorySeries = runHistory.map(function (run) { return Math.round((run.errorRate || 0) * 100); });
+  const endpointCoverageHistory = runHistory.map(function (run) { return run.uniqueEndpoints || 0; });
+
   const cardsData = [
-    { label: 'Successful checks', value: actions.length, hint: 'Observed successful endpoint checks across the run.', category: 'actions', categoryLabel: 'Actions', meta: 'actions', series: actionByEndpoint },
-    { label: 'Failed checks', value: errors.length, hint: 'Failing checks requiring route or session triage.', category: 'errors', categoryLabel: 'Errors', meta: 'errors', series: errorByEndpoint.length ? errorByEndpoint : [0] },
-    { label: 'Completed agents', value: completedAgents, hint: 'Synthetic users that produced at least one event.', category: 'personas', categoryLabel: 'Personas', meta: 'coverage', series: personaActionSeries },
-    { label: 'Impacted personas', value: affectedPersonas, hint: 'Distinct personas that encountered one or more failures.', category: 'personas', categoryLabel: 'Personas', meta: 'risk spread', series: personaErrorSeries },
-    { label: 'Average latency', value: avgActionMs, hint: 'Mean response time for successful checks.', category: 'performance', categoryLabel: 'Performance', meta: 'mean', suffix: 'ms', series: perfAvgSeries },
-    { label: 'P95 latency', value: p95Overall, hint: 'Tail latency averaged across participating users.', category: 'performance', categoryLabel: 'Performance', meta: 'tail', suffix: 'ms', series: perfP95Series },
-    { label: 'Failure rate', value: Math.round(errorRate * 100), hint: 'Share of observed checks that failed in the latest run.', category: 'errors', categoryLabel: 'Errors', meta: 'ratio', suffix: '%', series: [actions.length, errors.length, affectedPersonas, uniqueEndpoints] },
-    { label: 'Endpoint coverage', value: uniqueEndpoints, hint: 'Unique endpoints touched by synthetic traffic this run.', category: 'actions', categoryLabel: 'Actions', meta: 'breadth', series: actionByEndpoint.concat(errorByEndpoint).sort(function (a, b) { return a - b; }) }
+    { label: 'Successful checks', value: actions.length, hint: 'Observed successful endpoint checks across the run.', category: 'actions', categoryLabel: 'Actions', meta: deltaMeta(actions.length, previousRun && previousRun.successCount, ''), series: actionByEndpoint },
+    { label: 'Failed checks', value: errors.length, hint: 'Failing checks requiring route or session triage.', category: 'errors', categoryLabel: 'Errors', meta: deltaMeta(errors.length, previousRun && previousRun.errorCount, ''), series: errorByEndpoint.length ? errorByEndpoint : [0] },
+    { label: 'Completed agents', value: completedAgents, hint: 'Synthetic users that produced at least one event.', category: 'personas', categoryLabel: 'Personas', meta: deltaMeta(completedAgents, previousRun && previousRun.completedAgents, ''), series: personaActionSeries },
+    { label: 'Impacted personas', value: affectedPersonas, hint: 'Distinct personas that encountered one or more failures.', category: 'personas', categoryLabel: 'Personas', meta: deltaMeta(affectedPersonas, previousRun && previousRun.impactedPersonas, ''), series: personaErrorSeries },
+    { label: 'Avg success latency', value: avgSuccessMs, hint: 'Mean response time for successful checks only.', category: 'performance', categoryLabel: 'Performance', meta: deltaMeta(avgSuccessMs, previousRun && previousRun.avgSuccessLatencyMs, 'ms'), suffix: 'ms', series: successLatencySeries },
+    { label: 'Success p95 latency', value: Number(p95Overall || 0), hint: 'Tail latency for successful checks only.', category: 'performance', categoryLabel: 'Performance', meta: deltaMeta(p95Overall, previousRun && previousRun.p95SuccessLatencyMs, 'ms'), suffix: 'ms', series: p95HistorySeries },
+    { label: 'Avg failed latency', value: avgFailureMs, hint: 'Mean response time for failed checks, separated from healthy traffic.', category: 'performance', categoryLabel: 'Performance', meta: deltaMeta(avgFailureMs, previousRun && previousRun.avgFailureLatencyMs, 'ms'), suffix: 'ms', series: failureLatencySeries.length ? failureLatencySeries : [0] },
+    { label: 'Failure rate', value: Math.round(errorRate * 100), hint: 'Share of observed checks that failed in the latest run.', category: 'errors', categoryLabel: 'Errors', meta: deltaMeta(Math.round(errorRate * 100), previousRun ? Math.round((previousRun.errorRate || 0) * 100) : null, ' pts'), suffix: '%', series: failureRateHistorySeries.length ? failureRateHistorySeries : [0] },
+    { label: 'Endpoint coverage', value: uniqueEndpoints, hint: 'Unique endpoints touched by synthetic traffic this run.', category: 'actions', categoryLabel: 'Actions', meta: deltaMeta(uniqueEndpoints, previousRun && previousRun.uniqueEndpoints, ''), series: endpointCoverageHistory.length ? endpointCoverageHistory : actionByEndpoint.concat(errorByEndpoint).sort(function (a, b) { return a - b; }) }
   ];
 
   renderMetricCards(cardsData);
