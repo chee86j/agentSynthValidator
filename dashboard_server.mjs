@@ -448,6 +448,12 @@ const UI = `<!doctype html>
     }
     .nexus-stage.is-empty .nexus-empty { opacity: 1; }
     .nexus-stage.is-empty .nexus-tooltip { opacity: 0.85; }
+    .nexus-stage.is-live {
+      box-shadow: inset 0 0 0 1px rgba(57,255,123,0.05), 0 0 32px rgba(45,255,114,0.08);
+    }
+    .nexus-stage.is-live .nexus-globe {
+      box-shadow: 0 0 70px rgba(45,255,114,0.12), inset 0 0 56px rgba(45,255,114,0.10);
+    }
     .nexus-stats { margin-top: 2px; }
     .section-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
     .health-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
@@ -782,7 +788,7 @@ const UI = `<!doctype html>
     <div class="drawer-body" id="panelBody"></div>
   </aside>
 
-<script src="/app.js"></script>
+<script src="/app.js?v=2"></script>
 </body>
 </html>`;
 
@@ -825,6 +831,20 @@ function deltaMeta(current, previous, suffix) {
   if (Math.abs(diff) < 0.5) return 'flat vs prev';
   const sign = diff > 0 ? '+' : '';
   return sign + Math.round(diff) + (suffix || '') + ' vs prev';
+}
+
+function average(values) {
+  const nums = (values || []).map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+  if (!nums.length) return 0;
+  return Math.round(nums.reduce(function (sum, value) { return sum + value; }, 0) / nums.length);
+}
+
+function percentile(values, ratio) {
+  const nums = (values || []).map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); }).sort(function (a, b) { return a - b; });
+  if (!nums.length) return 0;
+  const q = ratio == null ? 0.95 : Number(ratio);
+  const idx = Math.min(nums.length - 1, Math.max(0, Math.ceil(nums.length * q) - 1));
+  return nums[idx];
 }
 
 function animateNumber(el, target) {
@@ -901,9 +921,11 @@ function renderNexus(summary, personas, actions, errors) {
   const subtitleEl = document.getElementById('heroHealthText');
   const hintEl = document.getElementById('nexusHint');
   const stageEl = document.querySelector('.nexus-stage');
+  const globeEl = document.getElementById('nexusGlobe');
+  const emptyEl = document.getElementById('nexusEmpty');
   const nodesEl = document.getElementById('nexusNodes');
   const arcsEl = document.getElementById('nexusArcs');
-  if (!countEl || !subtitleEl || !hintEl || !stageEl || !nodesEl || !arcsEl) return;
+  if (!countEl || !subtitleEl || !hintEl || !stageEl || !globeEl || !emptyEl || !nodesEl || !arcsEl) return;
 
   const connected = personas.length || 0;
   countEl.textContent = connected.toLocaleString() + ' connected';
@@ -912,15 +934,23 @@ function renderNexus(summary, personas, actions, errors) {
     subtitleEl.textContent = 'You\'re early. Invite others to light up the Nexus.';
     hintEl.textContent = 'Each light is a person. Lines show real activity. Drag to explore.';
     stageEl.classList.add('is-empty');
+    stageEl.classList.remove('is-live');
+    emptyEl.setAttribute('aria-hidden', 'false');
+    globeEl.setAttribute('aria-label', 'Nexus network waiting for participants. No connected users yet.');
     nodesEl.innerHTML = '';
     arcsEl.innerHTML = '';
     return;
   }
 
   stageEl.classList.remove('is-empty');
+  stageEl.classList.toggle('is-live', summary.status === 'running');
+  emptyEl.setAttribute('aria-hidden', 'true');
   const liveNow = personas.filter(function (p) { return ((p.actionCount || 0) + (p.errorCount || 0)) > 0; }).length;
   subtitleEl.textContent = liveNow.toLocaleString() + ' live now · your node is highlighted · equal presence, no hierarchy';
-  hintEl.textContent = 'Each light is a person. Lines show real activity. Drag to explore.';
+  hintEl.textContent = summary.status === 'running'
+    ? 'Each light is a person. Lines show live activity. Hover to study the network while the run is active.'
+    : 'Each light is a person. Lines show the latest activity paths from the completed run.';
+  globeEl.setAttribute('aria-label', connected.toLocaleString() + ' connected users in the Nexus, ' + liveNow.toLocaleString() + ' active in the latest run. Your node is highlighted.');
 
   const nodesMarkup = personas.map(function (p, i) {
     const pos = nexusNodePosition(i, connected);
