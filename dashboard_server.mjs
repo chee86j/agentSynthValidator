@@ -339,6 +339,116 @@ const UI = `<!doctype html>
     .btn-secondary { display: inline-flex; align-items: center; justify-content: center; background: rgba(9,25,13,0.82); color: var(--text); border: 1px solid var(--line); padding: 11px 14px; }
     .btn-secondary:hover { transform: translateY(-1px); border-color: var(--line-strong); box-shadow: 0 0 16px rgba(45,255,114,0.08); }
     .run-brief { padding: 22px; display: flex; flex-direction: column; gap: 16px; min-height: 248px; }
+    .nexus-panel { position: relative; overflow: hidden; }
+    .nexus-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+    .nexus-title-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+    .nexus-title { font-size: 28px; line-height: 1; letter-spacing: -0.04em; color: #effff4; text-shadow: 0 0 16px rgba(45,255,114,0.12); }
+    .nexus-copy { max-width: 42ch; margin-bottom: 0; }
+    .nexus-meta { text-align: right; max-width: 240px; }
+    .nexus-count { font-size: 20px; color: #d9ffe5; letter-spacing: -0.03em; }
+    .nexus-subtitle { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .nexus-stage {
+      position: relative;
+      min-height: 320px;
+      border-radius: 18px;
+      border: 1px solid rgba(89,255,147,0.12);
+      background: radial-gradient(circle at 50% 50%, rgba(24,75,36,0.26), rgba(1,6,3,0.94) 58%, rgba(0,0,0,0.98) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(57,255,123,0.03);
+    }
+    .nexus-rain {
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(180deg, rgba(0,255,65,0.10) 0 2px, transparent 2px 18px),
+        repeating-linear-gradient(90deg, rgba(0,59,0,0.18) 0 1px, transparent 1px 34px);
+      opacity: 0.09;
+      mask-image: radial-gradient(circle at 50% 46%, black 38%, transparent 78%);
+      pointer-events: none;
+    }
+    .nexus-globe-wrap { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+    .nexus-globe {
+      position: relative;
+      width: min(360px, 70vw);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 48% 38%, rgba(89,255,147,0.16), rgba(5,17,8,0.92) 54%, rgba(0,0,0,0.98) 100%);
+      border: 1px solid rgba(89,255,147,0.18);
+      box-shadow: 0 0 60px rgba(45,255,114,0.08), inset 0 0 50px rgba(45,255,114,0.08);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .nexus-grid {
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, transparent 58%, rgba(89,255,147,0.12) 59%, transparent 60%),
+        repeating-radial-gradient(circle, rgba(89,255,147,0.07) 0 1px, transparent 1px 22px),
+        repeating-linear-gradient(0deg, rgba(89,255,147,0.06) 0 1px, transparent 1px 26px),
+        repeating-linear-gradient(90deg, rgba(89,255,147,0.06) 0 1px, transparent 1px 26px);
+      opacity: 0.55;
+      transform: perspective(480px) rotateX(70deg);
+    }
+    .nexus-node-cloud, .nexus-arcs { position: absolute; inset: 0; }
+    .nexus-node {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      margin: -4px 0 0 -4px;
+      border-radius: 999px;
+      background: rgba(133,255,182,0.82);
+      box-shadow: 0 0 10px rgba(89,255,147,0.48);
+      opacity: 0.82;
+    }
+    .nexus-node.self {
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      background: #00bfff;
+      box-shadow: 0 0 16px rgba(0,191,255,0.7);
+      animation: selfPulse 2.2s ease-in-out infinite;
+    }
+    .nexus-node.dim { opacity: 0.45; }
+    .nexus-arcs path {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.92;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+    .nexus-tooltip {
+      margin-top: 14px;
+      max-width: 320px;
+      text-align: center;
+      color: #ccffda;
+      font-size: 12px;
+      line-height: 1.5;
+      background: rgba(4,16,7,0.82);
+      border: 1px solid rgba(89,255,147,0.14);
+      border-radius: 999px;
+      padding: 8px 12px;
+      box-shadow: 0 0 18px rgba(45,255,114,0.05);
+    }
+    .nexus-empty {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #d8ffe4;
+      font-size: 13px;
+      text-align: center;
+      max-width: 280px;
+      opacity: 0;
+      transition: opacity .2s ease;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .nexus-stage.is-empty .nexus-empty { opacity: 1; }
+    .nexus-stage.is-empty .nexus-tooltip { opacity: 0.85; }
+    .nexus-stats { margin-top: 2px; }
     .section-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
     .health-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
     .health-line strong { font-size: 28px; line-height: 1; letter-spacing: -0.04em; }
@@ -445,6 +555,28 @@ const UI = `<!doctype html>
     @keyframes statusPulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(142,219,255,0.0); }
       50% { box-shadow: 0 0 0 8px rgba(142,219,255,0.08); }
+    }
+    @keyframes selfPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.18); opacity: 0.84; }
+    }
+    @keyframes nexusRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .nexus-globe .nexus-node-cloud,
+    .nexus-globe .nexus-arcs,
+    .nexus-globe .nexus-grid { animation: nexusRotate 200s linear infinite; transform-origin: 50% 50%; }
+    .nexus-globe:hover .nexus-node-cloud,
+    .nexus-globe:hover .nexus-arcs,
+    .nexus-globe:hover .nexus-grid { animation-play-state: paused; }
+    @media (prefers-reduced-motion: reduce) {
+      .nexus-globe .nexus-node-cloud,
+      .nexus-globe .nexus-arcs,
+      .nexus-globe .nexus-grid,
+      .nexus-node.self {
+        animation: none !important;
+      }
     }
     @media (max-width: 1200px) {
       .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -562,16 +694,34 @@ const UI = `<!doctype html>
         </div>
       </div>
 
-      <aside class="panel run-brief">
-        <div>
-          <div class="section-label">Run health</div>
-          <div class="health-line">
-            <strong id="heroHealthText">Idle</strong>
-            <span class="status-badge info" id="heroHealthBadge">No active run</span>
+      <aside class="panel run-brief nexus-panel">
+        <div class="nexus-head">
+          <div>
+            <div class="section-label">Nexus</div>
+            <div class="nexus-title-row">
+              <strong class="nexus-title">Nexus View</strong>
+              <span class="status-badge info" id="heroHealthBadge">No active run</span>
+            </div>
+            <p class="brief-copy nexus-copy" id="runSummaryLine">Launch a synthetic run to generate findings, latency telemetry, and persona-level evidence.</p>
           </div>
-          <p class="brief-copy" id="runSummaryLine">Launch a synthetic run to generate findings, latency telemetry, and persona-level evidence.</p>
+          <div class="nexus-meta">
+            <div class="nexus-count mono" id="nexusCount">0 connected</div>
+            <div class="nexus-subtitle" id="heroHealthText">You&apos;re early. Invite others to light up the Nexus.</div>
+          </div>
         </div>
-        <div class="brief-grid">
+        <div class="nexus-stage">
+          <div class="nexus-rain" aria-hidden="true"></div>
+          <div class="nexus-globe-wrap">
+            <div class="nexus-globe" id="nexusGlobe" aria-label="3D network of users. Double tap to hear node count.">
+              <div class="nexus-grid" aria-hidden="true"></div>
+              <svg class="nexus-arcs" id="nexusArcs" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <div class="nexus-node-cloud" id="nexusNodes"></div>
+            </div>
+            <div class="nexus-tooltip" id="nexusHint">Each light is a person. Lines show real activity. Drag to explore.</div>
+          </div>
+          <div class="nexus-empty" id="nexusEmpty">You&apos;re early. Invite others to light up the Nexus.</div>
+        </div>
+        <div class="brief-grid nexus-stats">
           <div class="brief-stat"><div class="label">Status</div><div class="value" id="briefStatus">idle</div><div class="sub">No simulation in progress.</div></div>
           <div class="brief-stat"><div class="label">Window</div><div class="value mono" id="briefWindow">-</div><div class="sub">Run duration appears here.</div></div>
           <div class="brief-stat"><div class="label">Target</div><div class="value mono" id="briefTarget">-</div><div class="sub">Remote environment under test.</div></div>
@@ -720,6 +870,76 @@ function buildSparkline(values) {
     + '<path class="spark-line" d="' + line + '"></path>'
     + '<circle cx="' + last[0].toFixed(2) + '" cy="' + last[1].toFixed(2) + '" r="2.7"></circle>'
     + '</svg>';
+}
+
+function nexusNodePosition(index, total) {
+  const count = Math.max(1, total || 1);
+  const i = index + 0.5;
+  const phi = Math.acos(1 - (2 * i) / count);
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  const x = Math.cos(theta) * Math.sin(phi);
+  const y = Math.sin(theta) * Math.sin(phi);
+  const z = Math.cos(phi);
+  const scale = 0.72 + ((z + 1) / 2) * 0.34;
+  return {
+    left: 50 + x * 34,
+    top: 50 + y * 34,
+    opacity: 0.28 + ((z + 1) / 2) * 0.68,
+    scale: scale,
+    z: z
+  };
+}
+
+function nexusArcColor(kind) {
+  if (kind === 'collab') return '#00bfff';
+  if (kind === 'transaction') return '#ffd84d';
+  return '#00ff41';
+}
+
+function renderNexus(summary, personas, actions, errors) {
+  const countEl = document.getElementById('nexusCount');
+  const subtitleEl = document.getElementById('heroHealthText');
+  const hintEl = document.getElementById('nexusHint');
+  const stageEl = document.querySelector('.nexus-stage');
+  const nodesEl = document.getElementById('nexusNodes');
+  const arcsEl = document.getElementById('nexusArcs');
+  if (!countEl || !subtitleEl || !hintEl || !stageEl || !nodesEl || !arcsEl) return;
+
+  const connected = personas.length || 0;
+  countEl.textContent = connected.toLocaleString() + ' connected';
+
+  if (!connected) {
+    subtitleEl.textContent = 'You\'re early. Invite others to light up the Nexus.';
+    hintEl.textContent = 'Each light is a person. Lines show real activity. Drag to explore.';
+    stageEl.classList.add('is-empty');
+    nodesEl.innerHTML = '';
+    arcsEl.innerHTML = '';
+    return;
+  }
+
+  stageEl.classList.remove('is-empty');
+  const liveNow = personas.filter(function (p) { return ((p.actionCount || 0) + (p.errorCount || 0)) > 0; }).length;
+  subtitleEl.textContent = liveNow.toLocaleString() + ' live now · your node is highlighted · equal presence, no hierarchy';
+  hintEl.textContent = 'Each light is a person. Lines show real activity. Drag to explore.';
+
+  const nodesMarkup = personas.map(function (p, i) {
+    const pos = nexusNodePosition(i, connected);
+    const cls = 'nexus-node' + (i === 0 ? ' self' : (pos.z < -0.08 ? ' dim' : ''));
+    return '<span class="' + cls + '" style="left:' + pos.left.toFixed(2) + '%;top:' + pos.top.toFixed(2) + '%;opacity:' + pos.opacity.toFixed(2) + ';transform:scale(' + pos.scale.toFixed(2) + ')" title="' + esc((p.persona && p.persona.label) || 'user') + '"></span>';
+  }).join('');
+  nodesEl.innerHTML = nodesMarkup;
+
+  const recent = actions.concat(errors).slice(-6);
+  const arcsMarkup = recent.map(function (ev, i) {
+    const from = nexusNodePosition(i % connected, connected);
+    const to = nexusNodePosition((i * 3 + 5) % connected, connected);
+    const midX = ((from.left + to.left) / 2);
+    const lift = 8 + (i % 3) * 6;
+    const kind = ev.category === 'errors' ? 'transaction' : ((i % 2 === 0) ? 'chat' : 'collab');
+    const color = nexusArcColor(kind);
+    return '<path d="M ' + from.left.toFixed(2) + ' ' + from.top.toFixed(2) + ' Q ' + midX.toFixed(2) + ' ' + Math.max(6, Math.min(from.top, to.top) - lift).toFixed(2) + ' ' + to.left.toFixed(2) + ' ' + to.top.toFixed(2) + '" stroke="' + color + '" stroke-width="' + (kind === 'transaction' ? '1.8' : '1.2') + '"></path>';
+  }).join('');
+  arcsEl.innerHTML = arcsMarkup;
 }
 
 function latencyTone(ms) {
@@ -1168,7 +1388,6 @@ async function loadCategory(id, label) {
 
 function updateHero(summary) {
   const health = healthState(summary.errorRate, summary.p95Overall, summary.status);
-  document.getElementById('heroHealthText').textContent = health.headline;
   const badge = document.getElementById('heroHealthBadge');
   badge.className = 'status-badge ' + health.tone + (summary.status === 'running' ? ' pulse' : '');
   badge.textContent = health.label;
@@ -1269,6 +1488,7 @@ async function loadSummary() {
 
   document.getElementById('status').textContent = 'Status: ' + s.status + ' · Started: ' + fmtShort(s.startedAt) + ' · Finished: ' + fmtShort(s.finishedAt);
   updateHero(summary);
+  renderNexus(summary, personas, actions, errors);
 
   const findings = buildFindings(actions, errors, personas, perfRows);
   document.getElementById('briefGuidance').textContent = findings[0] ? findings[0].title : 'Awaiting run';
