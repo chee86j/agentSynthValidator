@@ -790,8 +790,8 @@ const UI = `<!doctype html>
       <div class="panel hero-main">
         <div>
           <div class="eyebrow">Matrix traffic observatory</div>
-          <h1 class="hero-title">Watch the system glitch before your real users feel it.</h1>
-          <p class="hero-lead">Trace autonomous test identities through the target surface, surface failure patterns and latency anomalies, and inspect persona-by-persona evidence from a single neon command deck.</p>
+          <h1 class="hero-title">Decode user behavior in real time.</h1>
+          <p class="hero-lead">Watch synthetic agents move through your product. See failures as they happen. Identify friction before real users feel it. This is your command center for product resilience.</p>
         </div>
         <div class="hero-footer">
           <div>
@@ -817,7 +817,7 @@ const UI = `<!doctype html>
               <strong class="nexus-title">Nexus View</strong>
               <span class="status-badge info" id="heroHealthBadge">No active run</span>
             </div>
-            <p class="brief-copy nexus-copy" id="runSummaryLine">Launch a synthetic run to generate findings, latency telemetry, and persona-level evidence.</p>
+            <p class="brief-copy nexus-copy" id="runSummaryLine">Live network of synthetic agents. Each node is a user. Watch them move through your product. See where they fail.</p>
           </div>
           <div class="nexus-meta">
             <div class="nexus-count mono" id="nexusCount">0 connected</div>
@@ -893,8 +893,8 @@ const UI = `<!doctype html>
 
     <section class="panel command-console">
       <div class="console-head">
-        <div class="section-label">Command Stream</div>
-        <h4 style="margin: 6px 0 0 0; font-size: 16px;">Live event log</h4>
+        <div class="section-label">Hacker View</div>
+        <h4 style="margin: 6px 0 0 0; font-size: 16px;">Event stream</h4>
       </div>
       <div class="console-body" id="commandConsole">
         <div class="console-line muted" style="opacity: 0.55;">Awaiting first run...</div>
