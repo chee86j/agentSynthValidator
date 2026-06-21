@@ -1,0 +1,27 @@
+{
+  "name": "agent-synth-validator",
+  "version": "1.0.0",
+  "description": "Matrix-themed synthetic user testing dashboard with live Nexus visualization",
+  "main": "dashboard_server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node dashboard_server.mjs",
+    "dev": "node dashboard_server.mjs"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "keywords": [
+    "synthetic",
+    "testing",
+    "dashboard",
+    "visualization",
+    "matrix"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chee86j/agentSynthValidator.git"
+  }
+}
