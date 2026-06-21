@@ -1150,7 +1150,7 @@ function renderNexus(summary, personas, actions, errors) {
   const nodesMarkup = personas.map(function (p, i) {
     const pos = nexusNodePosition(i, connected);
     const cls = 'nexus-node' + (i === 0 ? ' self' : (pos.z < -0.08 ? ' dim' : ''));
-    return '<span class="' + cls + '" style="left:' + pos.left.toFixed(2) + '%;top:' + pos.top.toFixed(2) + '%;opacity:' + pos.opacity.toFixed(2) + ';transform:scale(' + pos.scale.toFixed(2) + ')" title="' + esc((p.persona && p.persona.label) || 'user') + '"></span>';
+    return '<span class="' + cls + '" data-persona="' + esc((p.persona && p.persona.label) || 'user') + '" data-actions="' + (p.actionCount || 0) + '" data-errors="' + (p.errorCount || 0) + '" style="left:' + pos.left.toFixed(2) + '%;top:' + pos.top.toFixed(2) + '%;opacity:' + pos.opacity.toFixed(2) + ';transform:scale(' + pos.scale.toFixed(2) + ')" title="' + esc((p.persona && p.persona.label) || 'user') + '"></span>';
   }).join('');
   nodesEl.innerHTML = nodesMarkup;
 
@@ -1753,6 +1753,47 @@ async function loadSummary() {
     renderWorkspaceFilters();
   }
 }
+
+// Node and filter interaction handlers
+document.addEventListener('click', function(e) {
+  // Persona filter buttons
+  if (e.target.classList.contains('persona-filter-btn')) {
+    const filter = e.target.dataset.filter;
+    document.querySelectorAll('.persona-filter-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    const cards = document.querySelectorAll('.persona-card');
+    cards.forEach(function(card) {
+      if (filter === 'all') {
+        card.style.display = '';
+      } else if (filter === 'active') {
+        card.style.display = card.classList.contains('active') ? '' : 'none';
+      } else if (filter === 'errors') {
+        const hasErrors = card.querySelector('.stat-badge[style*="255,107"]');
+        card.style.display = hasErrors ? '' : 'none';
+      }
+    });
+  }
+
+  // Nexus node clicks
+  if (e.target.classList.contains('nexus-node')) {
+    const persona = e.target.dataset.persona;
+    const actions = parseInt(e.target.dataset.actions) || 0;
+    const errors = parseInt(e.target.dataset.errors) || 0;
+    
+    // Highlight corresponding persona card in left panel
+    document.querySelectorAll('.persona-card').forEach(function(card) {
+      const cardName = card.querySelector('.persona-name')?.textContent || '';
+      const match = cardName && persona.includes(cardName.split(' ')[0]);
+      if (match) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      card.style.filter = match ? 'brightness(1.1)' : 'brightness(0.85)';
+    });
+    
+    // Flash animation
+    e.target.classList.add('interactive');
+    setTimeout(function() { e.target.classList.remove('interactive'); }, 300);
+  }
+});
 
 document.getElementById('start').onclick = async function () {
   await fetch('/api/run/start');
