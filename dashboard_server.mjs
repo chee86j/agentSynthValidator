@@ -767,6 +767,25 @@ const UI = `<!doctype html>
       </div>
     </header>
 
+    <div style="display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; margin-bottom: 18px;">
+      <!-- LEFT PANEL: Persona Stack -->
+      <aside class="panel left-panel-stack">
+        <div>
+          <div class="section-label" style="margin-bottom: 8px;">Persona Archetypes</div>
+          <div class="persona-filter-bar">
+            <button class="persona-filter-btn active" data-filter="all">All</button>
+            <button class="persona-filter-btn" data-filter="active">Active</button>
+            <button class="persona-filter-btn" data-filter="errors">Errors</button>
+          </div>
+        </div>
+        <div class="persona-stack" id="personaStack">
+          <div class="muted" style="text-align: center; padding: 20px 0; font-size: 12px;">Run will populate personas...</div>
+        </div>
+      </aside>
+
+      <!-- CENTER/RIGHT: Main content -->
+      <div>
+
     <section class="hero-grid">
       <div class="panel hero-main">
         <div>
@@ -881,6 +900,11 @@ const UI = `<!doctype html>
         <div class="console-line muted" style="opacity: 0.55;">Awaiting first run...</div>
       </div>
     </section>
+
+      </div>
+      <!-- END main content -->
+    </div>
+    <!-- END left panel grid -->
   </div>
 
   <aside id="sidePanel" class="side-panel" aria-hidden="true">
