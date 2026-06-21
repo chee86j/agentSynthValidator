@@ -767,7 +767,7 @@ const UI = `<!doctype html>
       </div>
     </header>
 
-    <div style="display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; margin-bottom: 18px;">
+    <div style="display: grid; grid-template-columns: 260px minmax(0, 1fr) 280px; gap: 18px; margin-bottom: 18px;">
       <!-- LEFT PANEL: Persona Stack -->
       <aside class="panel left-panel-stack">
         <div>
@@ -783,7 +783,7 @@ const UI = `<!doctype html>
         </div>
       </aside>
 
-      <!-- CENTER/RIGHT: Main content -->
+      <!-- CENTER: Main content -->
       <div>
 
     <section class="hero-grid">
@@ -903,6 +903,18 @@ const UI = `<!doctype html>
 
       </div>
       <!-- END main content -->
+
+      <!-- RIGHT PANEL: Diagnostics -->
+      <aside class="panel right-panel-diagnostics">
+        <div>
+          <div class="section-label" style="margin-bottom: 8px;">Real-time Diagnostics</div>
+        </div>
+        
+        <div class="diagnostic-section" id="diagnosticsContainer">
+          <div class="diagnostic-empty">Run will populate diagnostics...</div>
+        </div>
+      </aside>
+      <!-- END right panel -->
     </div>
     <!-- END left panel grid -->
   </div>
