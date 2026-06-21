@@ -278,7 +278,12 @@ const UI = `<!doctype html>
       opacity: 0.2;
     }
     .wrap { max-width: 1440px; margin: 0 auto; padding: 28px; position: relative; z-index: 1; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(89,255,147,0.08); }
+    .mission-control { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; flex: 1; }
+    .mission-status { display: flex; gap: 16px; align-items: center; }
+    .mission-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .mission-label { color: #8fc8a1; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; font-size: 11px; }
+    .mission-value { color: #d9ffe5; font-weight: 650; font-family: var(--mono); }
     .brand { display: flex; align-items: center; gap: 14px; }
     .brand-mark {
       width: 42px; height: 42px; border-radius: 10px;
@@ -403,6 +408,28 @@ const UI = `<!doctype html>
       background: rgba(133,255,182,0.82);
       box-shadow: 0 0 10px rgba(89,255,147,0.48);
       opacity: 0.82;
+      transition: all .3s ease;
+    }
+    .nexus-node.active {
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      background: #2dff72;
+      box-shadow: 0 0 16px rgba(45,255,114,0.8), 0 0 32px rgba(45,255,114,0.4);
+      animation: nodeActive 1s ease-in-out infinite;
+    }
+    .nexus-node.error {
+      width: 12px;
+      height: 12px;
+      margin: -6px 0 0 -6px;
+      background: #ff6b6b;
+      box-shadow: 0 0 18px rgba(255,107,107,0.8), 0 0 36px rgba(255,107,107,0.3);
+      animation: nodeError .6s ease-in-out infinite;
+    }
+    .nexus-node.completed {
+      background: rgba(152,255,197,0.45);
+      box-shadow: 0 0 8px rgba(152,255,197,0.35);
+      opacity: 0.55;
     }
     .nexus-node.self {
       width: 10px;
@@ -576,6 +603,49 @@ const UI = `<!doctype html>
     .nexus-globe:hover .nexus-node-cloud,
     .nexus-globe:hover .nexus-arcs,
     .nexus-globe:hover .nexus-grid { animation-play-state: paused; }
+    .command-console { padding: 20px; margin-bottom: 18px; }
+    .console-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .console-head h4 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+    .console-body {
+      background: rgba(4,16,7,0.95);
+      border: 1px solid rgba(89,255,147,0.16);
+      border-radius: 12px;
+      padding: 14px;
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .console-body::-webkit-scrollbar { width: 6px; }
+    .console-body::-webkit-scrollbar-track { background: rgba(45,255,114,0.05); border-radius: 3px; }
+    .console-body::-webkit-scrollbar-thumb { background: rgba(89,255,147,0.35); border-radius: 3px; }
+    .console-body::-webkit-scrollbar-thumb:hover { background: rgba(89,255,147,0.5); }
+    .console-line {
+      color: #b4e1c1;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .console-line.event-action { color: #c6ffd7; }
+    .console-line.event-error { color: #ff9999; }
+    .console-line.event-success { color: #89ffb1; }
+    .console-line.event-friction { color: #ffd84d; }
+    .console-timestamp { color: #5f9870; font-size: 11px; flex-shrink: 0; }
+    .console-label { font-weight: 650; color: #deffe8; }
+    @keyframes nodeActive {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.88; }
+    }
+    @keyframes nodeError {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.72; }
+    }
+    @keyframes cmdLine {
+      from { width: 0; }
+      to { width: 100%; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .nexus-globe .nexus-node-cloud,
       .nexus-globe .nexus-arcs,
@@ -668,6 +738,26 @@ const UI = `<!doctype html>
         <div class="brand-copy">
           <small>matrix signal relay</small>
           <strong>AgentSynthValidator · Matrix Ops Console</strong>
+        </div>
+      </div>
+      <div class="mission-control" id="missionControl">
+        <div class="mission-status">
+          <div class="mission-item">
+            <span class="mission-label">Environment</span>
+            <span class="mission-value" id="missionEnv">production</span>
+          </div>
+          <div class="mission-item">
+            <span class="mission-label">Model</span>
+            <span class="mission-value" id="missionModel">gpt-4-turbo</span>
+          </div>
+          <div class="mission-item">
+            <span class="mission-label">Cost Ceiling</span>
+            <span class="mission-value" id="missionCost">$5.00</span>
+          </div>
+          <div class="mission-item">
+            <span class="mission-label">Elapsed</span>
+            <span class="mission-value mono" id="missionElapsed">—</span>
+          </div>
         </div>
       </div>
       <div class="topbar-meta">
@@ -780,6 +870,16 @@ const UI = `<!doctype html>
         </div>
       </div>
       <div class="activity-grid"><div id="detail"></div><aside id="inlineDetail" class="inline-detail muted">Select a row to inspect user, persona, endpoint, and raw payload details.</aside></div>
+    </section>
+
+    <section class="panel command-console">
+      <div class="console-head">
+        <div class="section-label">Command Stream</div>
+        <h4 style="margin: 6px 0 0 0; font-size: 16px;">Live event log</h4>
+      </div>
+      <div class="console-body" id="commandConsole">
+        <div class="console-line muted" style="opacity: 0.55;">Awaiting first run...</div>
+      </div>
     </section>
   </div>
 
@@ -915,6 +1015,65 @@ function nexusArcColor(kind) {
   if (kind === 'transaction') return '#ffd84d';
   return '#00ff41';
 }
+
+function updateMissionControl(summary) {
+  const startedAt = summary.startedAt ? new Date(summary.startedAt) : null;
+  const finishedAt = summary.finishedAt ? new Date(summary.finishedAt) : null;
+  const nowMs = Date.now();
+  
+  if (startedAt && summary.status === 'running') {
+    const elapsedMs = nowMs - startedAt.getTime();
+    const secs = Math.floor(elapsedMs / 1000);
+    const mins = Math.floor(secs / 60);
+    const elapsedStr = mins > 0 ? mins + 'm ' + (secs % 60) + 's' : secs + 's';
+    document.getElementById('missionElapsed').textContent = elapsedStr;
+  } else if (finishedAt && startedAt) {
+    const elapsedMs = finishedAt.getTime() - startedAt.getTime();
+    const secs = Math.floor(elapsedMs / 1000);
+    const mins = Math.floor(secs / 60);
+    const elapsedStr = mins > 0 ? mins + 'm ' + (secs % 60) + 's' : secs + 's';
+    document.getElementById('missionElapsed').textContent = elapsedStr;
+  } else {
+    document.getElementById('missionElapsed').textContent = '—';
+  }
+}
+
+function appendConsoleEvent(type, persona, action, timestamp) {
+  const consoleEl = document.getElementById('commandConsole');
+  if (!consoleEl) return;
+  
+  const lines = consoleEl.querySelectorAll('.console-line');
+  if (lines.length > 1 && lines[0].textContent === 'Awaiting first run...') {
+    lines[0].remove();
+  }
+  
+  const lineEl = document.createElement('div');
+  lineEl.className = 'console-line event-' + type;
+  
+  const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+  
+  let text = '';
+  if (type === 'action') {
+    text = persona + ' completed ' + action;
+  } else if (type === 'error') {
+    text = persona + ' failed on ' + action;
+  } else if (type === 'friction') {
+    text = 'friction detected: ' + action;
+  } else {
+    text = persona + ' · ' + action;
+  }
+  
+  lineEl.innerHTML = '<span class="console-timestamp">[' + timeStr + ']</span><span class="console-label">' + esc(text) + '</span>';
+  consoleEl.appendChild(lineEl);
+  
+  if (consoleEl.querySelectorAll('.console-line').length > 50) {
+    const firstLine = consoleEl.querySelector('.console-line');
+    if (firstLine) firstLine.remove();
+  }
+  
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
 
 function renderNexus(summary, personas, actions, errors) {
   const countEl = document.getElementById('nexusCount');
@@ -1518,6 +1677,7 @@ async function loadSummary() {
 
   document.getElementById('status').textContent = 'Status: ' + s.status + ' · Started: ' + fmtShort(s.startedAt) + ' · Finished: ' + fmtShort(s.finishedAt);
   updateHero(summary);
+  updateMissionControl(summary);
   renderNexus(summary, personas, actions, errors);
 
   const findings = buildFindings(actions, errors, personas, perfRows);
@@ -1564,6 +1724,7 @@ document.getElementById('start').onclick = async function () {
   const t = setInterval(async function () {
     await loadSummary();
     const s = await fetch('/api/summary').then(function (r) { return r.json(); });
+    updateMissionControl({status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt});
     if (s.status !== 'running') clearInterval(t);
   }, 1200);
 };
