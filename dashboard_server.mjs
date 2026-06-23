@@ -74,6 +74,20 @@ async function timedFetch(url, timeoutMs = 12000) {
   }
 }
 
+function mkEvent(ok, result, user, endpoint) {
+  // ponytail: Encapsulate event shape; eliminates 12 LOC duplication below
+  return {
+    category: ok ? 'actions' : 'errors',
+    username: user.username,
+    persona: user.persona,
+    endpoint,
+    status: result.status,
+    latencyMs: result.latencyMs,
+    timestamp: new Date().toISOString(),
+    ...(ok ? {} : { error: result.error || `HTTP ${result.status}` })
+  };
+}
+
 async function runSyntheticTest() {
   if (state.status === 'running') return;
 
@@ -89,32 +103,9 @@ async function runSyntheticTest() {
   for (const user of state.users) {
     for (const ep of endpoints) {
       const result = await timedFetch(`${TARGET}${ep}`);
-      if (result.ok) {
-        const action = {
-          category: 'actions',
-          username: user.username,
-          persona: user.persona,
-          endpoint: ep,
-          status: result.status,
-          latencyMs: result.latencyMs,
-          timestamp: new Date().toISOString()
-        };
-        user.actions.push(action);
-        state.actions.push(action);
-      } else {
-        const error = {
-          category: 'errors',
-          username: user.username,
-          persona: user.persona,
-          endpoint: ep,
-          status: result.status,
-          error: result.error || `HTTP ${result.status}`,
-          latencyMs: result.latencyMs,
-          timestamp: new Date().toISOString()
-        };
-        user.errors.push(error);
-        state.errors.push(error);
-      }
+      const event = mkEvent(result.ok, result, user, ep);
+      (result.ok ? user.actions : user.errors).push(event);
+      (result.ok ? state.actions : state.errors).push(event);
     }
   }
 
