@@ -718,6 +718,12 @@ const UI = `<!doctype html>
       .kv { grid-template-columns: 1fr; gap: 4px 0; }
       .kv .k { margin-top: 8px; }
     }
+    @media (max-width: 640px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 12px; }
+      .hero-main { min-height: auto; padding: 18px; }
+      .run-brief { padding: 18px; min-height: auto; }
+      .hero-title { font-size: clamp(1.8rem, 3vw, 2.4rem); }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
