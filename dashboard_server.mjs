@@ -32,6 +32,13 @@ function html(res, body) {
   res.end(body);
 }
 
+/**
+ * Generates N synthetic test users with persona templates.
+ * Each user is assigned a persona (power_user, tech_averse, price_hunter, etc.)
+ * and initialized with empty actions and errors arrays.
+ * @param {number} count - Number of users to create (default 20)
+ * @returns {Array<{id, username, persona, actions, errors}>} Test user objects
+ */
 function makeUsers(count = 20) {
   const firstNames = [
     'Mia', 'Noah', 'Ava', 'Liam', 'Zoe', 'Ethan', 'Ivy', 'Mason', 'Nora', 'Lucas',
@@ -59,6 +66,13 @@ function makeUsers(count = 20) {
   });
 }
 
+/**
+ * Fetches a URL with automatic timeout and error handling.
+ * Safe to retry on timeout; gracefully handles network failures and aborts.
+ * @param {string} url - Target endpoint to fetch
+ * @param {number} timeoutMs - Abort after N milliseconds (default 12000)
+ * @returns {Promise<{ok, status, latencyMs, error?}>} { ok: boolean, status: number, latencyMs: number, error?: string }
+ */
 async function timedFetch(url, timeoutMs = 12000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -127,6 +141,11 @@ function percentile(values, ratio = 0.95) {
   return nums[idx];
 }
 
+/**
+ * Aggregates current run metrics: error rate, latencies, impacted personas, top failing endpoint.
+ * Called after each run completes to build the snapshot stored in runHistory.
+ * @returns {object} Snapshot with { startedAt, finishedAt, status, totalEvents, successCount, errorCount, errorRate, avgSuccessLatencyMs, p95SuccessLatencyMs, avgFailureLatencyMs, uniqueEndpoints, impactedPersonas, completedAgents, topEndpoint }
+ */
 function buildRunSnapshot() {
   const successLatencies = state.actions.map(function (a) { return a.latencyMs; });
   const failureLatencies = state.errors.map(function (e) { return e.latencyMs; });
@@ -782,6 +801,13 @@ const UI = `<!doctype html>
 
       <!-- CENTER: Main content -->
       <div>
+
+    ${state.errors.length > 0 ? `
+      <div style="background: rgba(255, 107, 107, 0.08); border: 1px solid rgba(255, 107, 107, 0.3); padding: 16px 28px; margin-bottom: 18px; border-radius: 12px; border-left: 4px solid #ff6b6b;">
+        <span style="color: #d9ffe6; font-weight: 650;">${state.errors.length} failures detected</span>
+        <span style="color: #8fc8a1; margin-left: 16px; font-size: 13px;">${(state.errors.length / (state.actions.length + state.errors.length) * 100).toFixed(1)}% error rate</span>
+      </div>
+    ` : ''}
 
     <section class="hero-grid">
       <div class="panel hero-main">
