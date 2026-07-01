@@ -920,7 +920,11 @@ const UI = `<!doctype html>
         <h4 style="margin: 6px 0 0 0; font-size: 16px;">Event stream</h4>
       </div>
       <div class="console-body" id="commandConsole">
-        <div class="console-line muted" style="opacity: 0.55;">Awaiting first run...</div>
+        <div id="consoleEmpty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; color: #8fc8a1; text-align: center; gap: 12px;">
+          <div style="font-size: 32px; opacity: 0.6;">▲</div>
+          <div style="font-weight: 650; font-size: 14px; color: #d9ffe6;">No events yet</div>
+          <div style="font-size: 12px; color: #8fc8a1; max-width: 220px; line-height: 1.5;">Click the button above to run a synthetic test and watch events stream in real time.</div>
+        </div>
       </div>
     </section>
 
@@ -1101,9 +1105,10 @@ function appendConsoleEvent(type, persona, action, timestamp) {
   const consoleEl = document.getElementById('commandConsole');
   if (!consoleEl) return;
   
-  const lines = consoleEl.querySelectorAll('.console-line');
-  if (lines.length > 1 && lines[0].textContent === 'Awaiting first run...') {
-    lines[0].remove();
+  // Hide empty state on first event
+  const emptyEl = document.getElementById('consoleEmpty');
+  if (emptyEl) {
+    emptyEl.style.display = 'none';
   }
   
   const lineEl = document.createElement('div');
